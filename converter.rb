@@ -50,21 +50,41 @@ new_doc = Document.new("<!DOCTYPE KEEPASSX_DATABASE>
                         <database>
                         </database>")
 new_root = new_doc.root
+new_root = new_root.add_element "group"
+revgroup = new_root.add_element "title"
+revgroup.text = "Revelation Import"
 new_file = File.new(new_filename, "w+")
+
+def add_thing(source, target, name, lwrapper="", rwrapper="")
+    element = target.elements[name]
+    if element == nil
+      element = target.add_element name
+      element.text = ''
+    end
+    if source.text.to_s.strip != ''
+      element.text = element.text + lwrapper + source.text.to_s + rwrapper
+    end
+end
 
 def parse_folder(old_element, new_parent)
 
   old_element.elements.each { |e|
 
+  icons = { "creditcard" => 9, "database" => 43, "door" => 60, "generic" => 13,
+            "cryptokey" => 0, "email" => 19, "phone" => 68, 
+            "remotedesktop" => 35, "shell" => 30, "vnc" => 35, "website" => 1, 
+            "ftp" => 27 }
+  icons.default = 2
+
   if e.name == "entry" and e.attributes["type"] == "folder"
     entry = new_parent.add_element "group"
     icon = entry.add_element "icon"
-    icon.text = "1"
+    icon.text = "48"
     parse_folder(e, entry)
   elsif e.name == "entry" and e.attributes["type"] != "folder"
     entry = new_parent.add_element "entry"
     icon = entry.add_element "icon"
-    icon.text = "0"
+    icon.text = icons[e.attributes["type"]]
     parse_folder(e, entry)
   else
     entry = new_parent
@@ -90,32 +110,52 @@ def parse_folder(old_element, new_parent)
   if e.name == "field"
     case e.attributes["id"]
       when "generic-username"
-        username = entry.add_element "username"
-        username.text = e.text
+        add_thing(e, entry, "username")
       when "generic-password"
-        password = entry.add_element "password"
-        password.text = e.text
+        add_thing(e, entry, "password")
       when "generic-hostname"
-        url = entry.add_element "url"
-        url.text = e.text
-      when "generic-certificate"
-      when "generic-code"
-      when "generic-database"
-      when "generic-domain"
-      when "generic-email"
-      when "generic-keyfile"
-      when "generic-location"
-      when "generic-pin"
-      when "generic-port"
+        add_thing(e, entry, "url")
       when "generic-url"
+        add_thing(e, entry, "url")
+      when "generic-certificate"
+        add_thing(e, entry, "comment", "\nCertificate: ", "\n")
+      when "generic-code"
+        add_thing(e, entry, "password")
+      when "generic-database"
+        add_thing(e, entry, "comment", "\nDatabase: ", "\n")
+      when "generic-domain"
+        add_thing(e, entry, "comment", "\nDomain: ", "\n")
+      when "generic-email"
+        add_thing(e, entry, "username", "<", ">")
+      when "generic-keyfile"
+        add_thing(e, entry, "comment", "\nKeyfile: ", "\n")
+      when "generic-location"
+        add_thing(e, entry, "username")
+      when "generic-pin"
+        add_thing(e, entry, "password")
+      when "generic-port"
+        add_thing(e, entry, "comment", "\nPort: ", "\n")
+      when "creditcard-cardtype"
+        add_thing(e, entry, "comment", "\nCardtype: ", "\n")
+      when "creditcard-cardnumber"
+        add_thing(e, entry, "username")
+      when "creditcard-expirydate"
+        add_thing(e, entry, "comment", "\nExpirydate: ", "\n")
+      when "creditcard-ccv"
+        add_thing(e, entry, "comment", "\nCCV: ", "\n")
+      when "phone-phonenumber"
+        add_thing(e, entry, "username")
     end
   end
 
   if e.name == "description"
-    desc = entry.add_element "comment"
-    desc.text = e.text
+    add_thing(e,entry, "comment", "*", "*")
   end
-# 
+
+  if e.name == "notes"
+    add_thing(e, entry, "comment", "\n")
+  end
+
   }
 end
 
